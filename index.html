@@ -1,0 +1,549 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Afinador de Charango</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600&family=Space+Grotesk:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#211823;
+    --surface:#2c2130;
+    --surface-2:#382b3d;
+    --text:#f3e9dc;
+    --muted:#b7a6ac;
+    --gold:#d9a441;
+    --gold-dim:#a97f34;
+    --teal:#4fae8c;
+    --coral:#d1495b;
+    --wood:#a9723f;
+    --line:rgba(243,233,220,0.12);
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    background:var(--bg);
+    color:var(--text);
+    font-family:'Space Grotesk',sans-serif;
+    min-height:100vh;
+    display:flex;
+    justify-content:center;
+    padding:32px 16px 60px;
+  }
+  .app{
+    width:100%;
+    max-width:460px;
+  }
+  header{
+    text-align:center;
+    margin-bottom:28px;
+  }
+  h1{
+    font-family:'Fraunces',serif;
+    font-weight:600;
+    font-size:32px;
+    margin:0 0 6px;
+    letter-spacing:0.3px;
+  }
+  header p{
+    margin:0;
+    color:var(--muted);
+    font-size:14px;
+  }
+  .charango-line{
+    display:block;
+    margin:18px auto 0;
+    opacity:0.55;
+  }
+
+  .tuning-select{
+    display:flex;
+    gap:8px;
+    margin-bottom:20px;
+  }
+  .tuning-select button{
+    flex:1;
+    background:var(--surface);
+    border:1px solid var(--line);
+    color:var(--muted);
+    font-family:'Space Grotesk',sans-serif;
+    font-size:13px;
+    padding:10px 6px;
+    border-radius:10px;
+    cursor:pointer;
+    transition:border-color .15s, color .15s, background .15s;
+  }
+  .tuning-select button.active{
+    border-color:var(--gold);
+    color:var(--gold);
+    background:var(--surface-2);
+  }
+
+  .custom-panel{
+    display:none;
+    background:var(--surface);
+    border:1px solid var(--line);
+    border-radius:12px;
+    padding:14px;
+    margin-bottom:20px;
+  }
+  .custom-panel.show{display:block;}
+  .custom-row{
+    display:flex;
+    align-items:center;
+    gap:10px;
+    margin-bottom:8px;
+  }
+  .custom-row:last-child{margin-bottom:0;}
+  .custom-row span{
+    width:64px;
+    font-size:13px;
+    color:var(--muted);
+  }
+  .custom-row select, .custom-row input{
+    background:var(--surface-2);
+    border:1px solid var(--line);
+    color:var(--text);
+    font-family:'Space Grotesk',sans-serif;
+    font-size:14px;
+    padding:6px 8px;
+    border-radius:8px;
+  }
+  .custom-row select{flex:1;}
+  .custom-row input{width:56px;}
+
+  .tuner-card{
+    background:var(--surface);
+    border:1px solid var(--line);
+    border-radius:20px;
+    padding:26px 20px 22px;
+    margin-bottom:22px;
+  }
+
+  .dial-wrap{
+    position:relative;
+    width:220px;
+    height:130px;
+    margin:0 auto 10px;
+  }
+  svg#dial{width:100%;height:100%;display:block;}
+
+  .readout{
+    text-align:center;
+    margin-top:2px;
+  }
+  .note-name{
+    font-family:'Fraunces',serif;
+    font-weight:600;
+    font-size:48px;
+    line-height:1;
+    color:var(--gold);
+  }
+  .target-label{
+    color:var(--muted);
+    font-size:13px;
+    margin-top:4px;
+  }
+  .freq-hz{
+    color:var(--muted);
+    font-size:13px;
+    margin-top:2px;
+  }
+  .cents-status{
+    font-size:14px;
+    font-weight:500;
+    margin-top:10px;
+  }
+
+  .mic-btn{
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    gap:10px;
+    width:100%;
+    background:var(--gold);
+    color:#2b1e12;
+    border:none;
+    font-family:'Space Grotesk',sans-serif;
+    font-weight:700;
+    font-size:15px;
+    padding:14px;
+    border-radius:12px;
+    cursor:pointer;
+    margin-bottom:8px;
+  }
+  .mic-btn.listening{
+    background:var(--surface-2);
+    color:var(--text);
+    border:1px solid var(--gold);
+  }
+  .mic-btn:active{transform:scale(0.99);}
+
+  .status-msg{
+    text-align:center;
+    font-size:12.5px;
+    color:var(--muted);
+    min-height:16px;
+  }
+  .status-msg.error{color:var(--coral);}
+
+  .strings{
+    display:flex;
+    flex-direction:column;
+    gap:8px;
+  }
+  .string-row{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    background:var(--surface);
+    border:1px solid var(--line);
+    border-radius:10px;
+    padding:11px 14px;
+    transition:border-color .15s, background .15s;
+  }
+  .string-row.current{
+    border-color:var(--gold);
+    background:var(--surface-2);
+  }
+  .string-row .left{
+    display:flex;
+    align-items:center;
+    gap:10px;
+  }
+  .string-index{
+    width:20px;
+    height:20px;
+    border-radius:50%;
+    background:var(--wood);
+    color:#2b1e12;
+    font-size:11px;
+    font-weight:700;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+  }
+  .string-note{
+    font-size:15px;
+    font-weight:500;
+  }
+  .string-freq{
+    font-size:12.5px;
+    color:var(--muted);
+  }
+
+  .needle-mark{
+    fill:var(--gold);
+  }
+</style>
+</head>
+<body>
+<div class="app">
+  <header>
+    <h1>Afinador de charango</h1>
+    <p>Elige la afinación y toca una cuerda para detectarla automáticamente</p>
+    <svg class="charango-line" width="140" height="26" viewBox="0 0 140 26" fill="none">
+      <path d="M8 20 C 8 8, 24 4, 32 4 C 40 4, 44 10, 44 15 L 44 20" stroke="var(--gold-dim)" stroke-width="1.5"/>
+      <line x1="44" y1="4" x2="132" y2="4" stroke="var(--gold-dim)" stroke-width="1.5"/>
+      <line x1="52" y1="2" x2="52" y2="6" stroke="var(--gold-dim)" stroke-width="1.5"/>
+      <line x1="60" y1="2" x2="60" y2="6" stroke="var(--gold-dim)" stroke-width="1.5"/>
+    </svg>
+  </header>
+
+  <div class="tuning-select" id="tuningSelect">
+    <button data-tuning="standard" class="active">Estándar<br>Sol-Do-Mi-La-Mi</button>
+    <button data-tuning="transposed">Transportada<br>+1 tono</button>
+    <button data-tuning="custom">Personalizada</button>
+  </div>
+
+  <div class="custom-panel" id="customPanel"></div>
+
+  <div class="tuner-card">
+    <div class="dial-wrap">
+      <svg id="dial" viewBox="0 0 220 130">
+        <path d="M 20 120 A 90 90 0 0 1 200 120" fill="none" stroke="var(--line)" stroke-width="10" stroke-linecap="round"/>
+        <path id="dialActive" d="M 20 120 A 90 90 0 0 1 200 120" fill="none" stroke="var(--surface-2)" stroke-width="10" stroke-linecap="round" opacity="0"/>
+        <g id="needleGroup" transform="rotate(0 110 120)">
+          <line x1="110" y1="120" x2="110" y2="38" stroke="var(--gold)" stroke-width="3" stroke-linecap="round"/>
+          <circle cx="110" cy="120" r="6" class="needle-mark"/>
+        </g>
+      </svg>
+    </div>
+    <div class="readout">
+      <div class="note-name" id="noteName">–</div>
+      <div class="target-label" id="targetLabel">Esperando señal…</div>
+      <div class="freq-hz" id="freqHz">&nbsp;</div>
+      <div class="cents-status" id="centsStatus">&nbsp;</div>
+    </div>
+  </div>
+
+  <button class="mic-btn" id="micBtn">Activar micrófono</button>
+  <div class="status-msg" id="statusMsg">&nbsp;</div>
+
+  <div class="strings" id="strings"></div>
+</div>
+
+<script>
+const NOTE_NAMES = ['Do','Do#','Re','Re#','Mi','Fa','Fa#','Sol','Sol#','La','La#','Si'];
+
+function freqFromMidi(m){ return 440 * Math.pow(2, (m-69)/12); }
+function midiFromFreq(f){ return 69 + 12*Math.log2(f/440); }
+
+const STANDARD = [
+  {label:'1ª cuerda', note:'Mi', freq:659.25},
+  {label:'2ª cuerda', note:'La', freq:440.00},
+  {label:'3ª cuerda', note:'Mi (octavada)', freq:659.25},
+  {label:'4ª cuerda', note:'Do', freq:523.25},
+  {label:'5ª cuerda', note:'Sol', freq:392.00}
+];
+
+function transposeSet(set, semitones){
+  return set.map(s => ({...s, freq: s.freq * Math.pow(2, semitones/12)}));
+}
+
+let currentTuning = 'standard';
+let currentStrings = STANDARD.map(s => ({...s}));
+
+const customState = [
+  {noteIdx:4, octave:5},
+  {noteIdx:9, octave:4},
+  {noteIdx:4, octave:5},
+  {noteIdx:0, octave:5},
+  {noteIdx:7, octave:4}
+];
+
+function buildCustomPanel(){
+  const panel = document.getElementById('customPanel');
+  panel.innerHTML = '';
+  STANDARD.forEach((s, i) => {
+    const row = document.createElement('div');
+    row.className = 'custom-row';
+    const span = document.createElement('span');
+    span.textContent = s.label;
+    const select = document.createElement('select');
+    NOTE_NAMES.forEach((n, ni) => {
+      const opt = document.createElement('option');
+      opt.value = ni;
+      opt.textContent = n;
+      if(ni === customState[i].noteIdx) opt.selected = true;
+      select.appendChild(opt);
+    });
+    const octInput = document.createElement('input');
+    octInput.type = 'number';
+    octInput.min = 2; octInput.max = 7;
+    octInput.value = customState[i].octave;
+    select.addEventListener('change', () => {
+      customState[i].noteIdx = parseInt(select.value);
+      updateCustomStrings();
+    });
+    octInput.addEventListener('change', () => {
+      customState[i].octave = parseInt(octInput.value) || 4;
+      updateCustomStrings();
+    });
+    row.appendChild(span);
+    row.appendChild(select);
+    row.appendChild(octInput);
+    panel.appendChild(row);
+  });
+}
+
+function updateCustomStrings(){
+  currentStrings = customState.map((c, i) => {
+    const midi = (c.octave+1)*12 + c.noteIdx;
+    return {label: STANDARD[i].label, note: NOTE_NAMES[c.noteIdx], freq: freqFromMidi(midi)};
+  });
+  renderStrings();
+}
+
+function selectTuning(name){
+  currentTuning = name;
+  document.querySelectorAll('#tuningSelect button').forEach(b => {
+    b.classList.toggle('active', b.dataset.tuning === name);
+  });
+  document.getElementById('customPanel').classList.toggle('show', name === 'custom');
+  if(name === 'standard'){
+    currentStrings = STANDARD.map(s => ({...s}));
+  } else if(name === 'transposed'){
+    currentStrings = transposeSet(STANDARD, 2);
+  } else {
+    updateCustomStrings();
+  }
+  renderStrings();
+}
+
+function renderStrings(activeIdx){
+  const wrap = document.getElementById('strings');
+  wrap.innerHTML = '';
+  currentStrings.forEach((s, i) => {
+    const row = document.createElement('div');
+    row.className = 'string-row' + (i === activeIdx ? ' current' : '');
+    row.innerHTML = `
+      <div class="left">
+        <div class="string-index">${i+1}</div>
+        <div class="string-note">${s.note}</div>
+      </div>
+      <div class="string-freq">${s.freq.toFixed(2)} Hz</div>
+    `;
+    wrap.appendChild(row);
+  });
+}
+
+document.getElementById('tuningSelect').addEventListener('click', (e) => {
+  const btn = e.target.closest('button');
+  if(!btn) return;
+  selectTuning(btn.dataset.tuning);
+});
+
+buildCustomPanel();
+selectTuning('standard');
+
+let audioCtx, analyser, sourceNode, dataArray, rafId;
+let listening = false;
+
+function autoCorrelate(buf, sampleRate){
+  const SIZE = buf.length;
+  let rms = 0;
+  for(let i=0;i<SIZE;i++){ rms += buf[i]*buf[i]; }
+  rms = Math.sqrt(rms/SIZE);
+  if(rms < 0.01) return -1;
+
+  let start = 0, end = SIZE-1;
+  const thresh = 0.2;
+  while(start < SIZE/2 && Math.abs(buf[start]) < thresh) start++;
+  while(end > SIZE/2 && Math.abs(buf[end]) < thresh) end--;
+  const trimmed = buf.slice(start, end);
+  const n = trimmed.length;
+  if(n < 512) return -1;
+
+  const c = new Float32Array(n);
+  for(let lag=0; lag<n; lag++){
+    let sum = 0;
+    for(let i=0; i<n-lag; i++){ sum += trimmed[i]*trimmed[i+lag]; }
+    c[lag] = sum;
+  }
+
+  let d = 0;
+  while(d < n-1 && c[d] > c[d+1]) d++;
+
+  let maxVal = -1, maxPos = -1;
+  for(let i=d; i<n; i++){
+    if(c[i] > maxVal){ maxVal = c[i]; maxPos = i; }
+  }
+  if(maxPos <= 0) return -1;
+
+  let T0 = maxPos;
+  const x1 = c[T0-1] || 0, x2 = c[T0], x3 = c[T0+1] || 0;
+  const a = (x1 + x3 - 2*x2)/2;
+  const b = (x3 - x1)/2;
+  if(a !== 0) T0 = T0 - b/(2*a);
+
+  if(T0 <= 0) return -1;
+  return sampleRate / T0;
+}
+
+function closestTarget(freq){
+  const detectedMidi = midiFromFreq(freq);
+  let best = null, bestDiff = Infinity, bestIdx = -1;
+  currentStrings.forEach((s, i) => {
+    const targetMidi = midiFromFreq(s.freq);
+    let diff = detectedMidi - targetMidi;
+    diff = diff - Math.round(diff/12)*12;
+    if(Math.abs(diff) < Math.abs(bestDiff)){
+      bestDiff = diff;
+      best = s;
+      bestIdx = i;
+    }
+  });
+  return {string: best, idx: bestIdx, cents: bestDiff*100};
+}
+
+function updateDial(cents){
+  const clamped = Math.max(-50, Math.min(50, cents));
+  const angle = (clamped/50) * 80;
+  document.getElementById('needleGroup').setAttribute('transform', `rotate(${angle} 110 120)`);
+}
+
+function pitchLoop(){
+  analyser.getFloatTimeDomainData(dataArray);
+  const freq = autoCorrelate(dataArray, audioCtx.sampleRate);
+
+  if(freq > 60 && freq < 1400){
+    const result = closestTarget(freq);
+    document.getElementById('noteName').textContent = result.string.note;
+    document.getElementById('targetLabel').textContent = `Objetivo: ${result.string.label} · ${result.string.freq.toFixed(2)} Hz`;
+    document.getElementById('freqHz').textContent = `Detectado: ${freq.toFixed(1)} Hz`;
+
+    const centsEl = document.getElementById('centsStatus');
+    const absCents = Math.abs(result.cents);
+    if(absCents < 5){
+      centsEl.textContent = 'Afinado';
+      centsEl.style.color = 'var(--teal)';
+    } else if(result.cents > 0){
+      centsEl.textContent = `Sostenido +${Math.round(result.cents)} cents`;
+      centsEl.style.color = 'var(--coral)';
+    } else {
+      centsEl.textContent = `Bemol ${Math.round(result.cents)} cents`;
+      centsEl.style.color = 'var(--coral)';
+    }
+    updateDial(result.cents);
+    renderStrings(result.idx);
+  } else {
+    document.getElementById('noteName').textContent = '–';
+    document.getElementById('targetLabel').textContent = 'Escuchando…';
+    document.getElementById('freqHz').textContent = '\u00A0';
+    document.getElementById('centsStatus').textContent = '\u00A0';
+    updateDial(0);
+    renderStrings();
+  }
+
+  rafId = requestAnimationFrame(pitchLoop);
+}
+
+async function startListening(){
+  const statusMsg = document.getElementById('statusMsg');
+  try{
+    const stream = await navigator.mediaDevices.getUserMedia({
+      audio:{ echoCancellation:false, noiseSuppression:false, autoGainControl:false }
+    });
+    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    analyser = audioCtx.createAnalyser();
+    analyser.fftSize = 2048;
+    dataArray = new Float32Array(analyser.fftSize);
+    sourceNode = audioCtx.createMediaStreamSource(stream);
+    sourceNode.connect(analyser);
+    listening = true;
+    document.getElementById('micBtn').textContent = 'Detener';
+    document.getElementById('micBtn').classList.add('listening');
+    statusMsg.textContent = '';
+    statusMsg.classList.remove('error');
+    pitchLoop();
+  } catch(err){
+    statusMsg.textContent = 'No se pudo acceder al micrófono. Revisa los permisos del navegador.';
+    statusMsg.classList.add('error');
+  }
+}
+
+function stopListening(){
+  listening = false;
+  if(rafId) cancelAnimationFrame(rafId);
+  if(sourceNode) sourceNode.disconnect();
+  if(audioCtx) audioCtx.close();
+  document.getElementById('micBtn').textContent = 'Activar micrófono';
+  document.getElementById('micBtn').classList.remove('listening');
+  document.getElementById('noteName').textContent = '–';
+  document.getElementById('targetLabel').textContent = 'Esperando señal…';
+  document.getElementById('freqHz').textContent = '\u00A0';
+  document.getElementById('centsStatus').textContent = '\u00A0';
+  updateDial(0);
+  renderStrings();
+}
+
+document.getElementById('micBtn').addEventListener('click', () => {
+  if(listening) stopListening();
+  else startListening();
+});
+</script>
+</body>
+</html>
